@@ -116,10 +116,11 @@ class Error:
         self.pe = pe
     
     def as_string(self):
-            result  = f'{self.ename}: {self.edetails}\n'
+            result = f'{self.ename}: {self.edetails}\n'
             result += f'File {self.ps.fn}, line {self.ps.ln + 1}'
             result += '\n' + string_with_arrows(self.ps.ftxt, self.ps, self.pe)
             return result
+
 
 class IllegalCharError(Error):
     def __init__(self, ps, pe, edetails,):
@@ -140,17 +141,18 @@ class RTError(Error):
         result += '\n' + string_with_arrows(self.ps.ftxt, self.ps, self.pe)
         return result
 
+
     def generate_traceback(self):
         result = ''
         pos = self.ps
         ctx = self.ctx
+
         while ctx:
             result = f'  File {pos.fn}, line {str(pos.ln + 1)}, in {ctx.dname}\n' + result
-            pos = pos
-            ctx = ctx
+            pos = ctx.pep
+            ctx = ctx.parent
+            
         return 'Traceback (most recent call last):\n' + result
-
-
 # Nodes
 class NumberNode:
     def __init__(self, tok):
@@ -232,7 +234,7 @@ class Parser:
             )
         return res
 
-    #################################################
+    ################################################################################
     def factor(self):
         res = ParseResult()
         tok = self.ctok
@@ -241,19 +243,16 @@ class Parser:
             factor = res.register(self.factor())
             if res.error: return res
             return res.success(UnaryOpNode(tok, factor))
-
         elif tok.type in (TT_INT, TT_FLOAT):
             res.register(self.advance())
             return res.success(NumberNode(tok))
 
-        # Here, we have to check if the current token type is a LPAREN
         elif tok.type == TT_LPAREN:
             res.register(self.advance())
-            expr = res.register(self.expr())
-            if res.error: return res
+            res.register(self.expr())
             if self.ctok.type == TT_RPAREN:
                 res.register(self.advance())
-                return res.success(expr)
+                return res.success(res.node)
             else:
                 return res.failure(
                     InvalidSynthaxError(
@@ -262,14 +261,16 @@ class Parser:
                         edetails = "Expected ')'"
                     )
                 )
-
+        
         return res.failure(
             InvalidSynthaxError(
-                tok.ps,
-                tok.pe,
-                'Expected int or float'
+                ps = self.ctok.ps,
+                pe = self.ctok.pe,
+                edetails = "Expected int, or float"
             )
         )
+
+        
 
     def term(self):
         return self.binop(self.factor, (TT_MUL, TT_DIV))
@@ -277,16 +278,20 @@ class Parser:
     def expr(self):
         return self.binop(self.term, (TT_PLUS, TT_MINUS))
 
+    # Binop method
     def binop(self, func, ops):
+
         res = ParseResult()
         left = res.register(func())
         if res.error: return res
-        while self.ctok.type in ops:
-            optok = self.ctok
+
+        while self.ctok.type in ops or (self.ctok.type, self.ctok.value) in ops:
+            tok = self.ctok
             res.register(self.advance())
             right = res.register(func())
             if res.error: return res
-            left = BinOpNode(left, optok, right)
+            left = BinOpNode(left, tok, right)
+
         return res.success(left)
 
 
@@ -372,66 +377,84 @@ class Context:
 # INTERPRETER
 class Interpreter:
     def visit(self, node, context):
-        mname = f'visit_{type(node).__name__}'
-        method = getattr(self, mname, self.nvm)
+        method_name = f'visit_{type(node).__name__}'
+        method = getattr(self, method_name, self.no_visit_method)
         return method(node, context)
-
-    def nvm(self, node, context):
-        raise Exception(f'No visit_{type(node).__name__} method defined.')
+    
+    def no_visit_method(self, node, context):
+        raise Exception(f'No visit_{type(node).__name__} method defined')
     
     def visit_NumberNode(self, node, context):
         return RTResult().success(
-            Number(
-                node.tok.value
-            ).sctx(context).spos(
-                    node.tok.ps, node.tok.pe
-                )
+            Number(node.tok.value).spos(node.tok.ps, node.tok.pe).sctx(context)
         )
+    
+    def visit_UnaryOpNode(self, node, context):
+        res = RTResult()
+        number = res.register(self.visit(node.node, context))
+        if res.error: return res
+        
+        error = None
+        if node.optok.type == TT_MINUS:
+            number, error = number.subto(Number(0))
+        elif node.optok.type == TT_PLUS:
+            pass
+        else:
+            return RTResult().failure(
+                InvalidSynthaxError(
+                    node.optok.ps,
+                    node.optok.pe,
+                    f'Expected int, but got {node.optok.value}'
+                )
+            )
+        
+        return res.success(number)
     
     def visit_BinOpNode(self, node, context):
         res = RTResult()
-        l = res.register(self.visit(node.lnode, context))
+        left = res.register(self.visit(node.lnode, context))
         if res.error: return res
-        r = res.register(self.visit(node.rnode, context))
-        if res.error: return res
-        if node.optok.type == TT_PLUS:
-            result, error = l.addto(r)
-        elif node.optok.type == TT_MINUS:
-            result, error = l.subto(r)
-        elif node.optok.type == TT_MUL:
-            result, error = l.multo(r)
-        elif node.optok.type == TT_DIV:
-            result, error = l.divto(r)
         
-        if error: return res.failure(error)
-        else:
-            return res.success(result.spos(node.ps, node.pe))
-
-    def visit_UnaryOpNode(self, node, context):
-        res = RTResult()
-        num = res.register(self.visit(node.node, context))
+        right = res.register(self.visit(node.rnode, context))
         if res.error: return res
+        
         error = None
-        if node.optok.type == TT_MINUS:
-            num, error = num.multo(Number(-1))
-        
-        if res.error: return res.failure(error)
+        if node.optok.type == TT_PLUS:
+            result, error = left.addto(right)
+        elif node.optok.type == TT_MINUS:
+            result, error = left.subto(right)
+        elif node.optok.type == TT_MUL:
+            result, error = left.multo(right)
+        elif node.optok.type == TT_DIV:
+            result, error = left.divto(right)
         else:
-            return res.success(num.spos(node.ps, node.pe))
+            return RTResult().failure(
+                InvalidSynthaxError(
+                    node.optok.ps,
+                    node.optok.pe,
+                    f'Expected int, but got {node.optok.value}'
+                )
+            )
 
+
+        if error:
+            return res.failure(error)
+        else:
+            return res.success(result)
 
 # Finally, run the interpreter:
 def run(fn, text):
+    # Generate tokens
     lexer = Lexer(fn, text)
-    tokens, errors = lexer.tokenize()
-    if errors: return None, errors
-
-    # GENERATE AST
+    tokens, error = lexer.tokenize()
+    if error: return None, error
+    
+    # Generate AST
     parser = Parser(tokens)
     ast = parser.parse()
     if ast.error: return None, ast.error
-
-    # RUN INTERPRETER
+    
+    # Run program
     interpreter = Interpreter()
     context = Context('<program>')
     result = interpreter.visit(ast.node, context)
