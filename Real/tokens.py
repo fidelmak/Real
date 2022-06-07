@@ -13,10 +13,21 @@ TT_IDENTIFIER = 'IDENTIFIER'
 TT_KEYWORD = 'KEYWORD'
 TT_POW = 'POW'
 TT_EQ = 'EQ'
+TT_EE = 'EE'
+TT_NE = 'NE'
+TT_LT = 'LT'
+TT_GT = 'GT'
+TT_LTE = 'LTE'
+TT_GTE = 'GTE'
+
+
 # Other constants
 DIGITS = '0123456789'
 LETTERS = string.ascii_letters
 LETTERS_DIGITS = LETTERS + DIGITS
 KEYWORDS = [
-    'define'
+    'define',
+    '&',
+    '|',
+    'not',
 ]
