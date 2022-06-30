@@ -1,4 +1,5 @@
-# Real, an interpreter for the real programming language!
+# Real, a simple programming language
+
 
 # Intallation
   ### Requirements
