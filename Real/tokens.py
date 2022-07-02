@@ -32,5 +32,9 @@ KEYWORDS = [
     'conif',
     'do',
     'conelif',
-    'conelse'
+    'conelse',
+    'for',
+    'until',
+    'step',
+    'while'
 ]
