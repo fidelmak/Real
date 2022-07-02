@@ -20,14 +20,21 @@ TT_GT = 'GT'
 TT_LTE = 'LTE'
 TT_GTE = 'GTE'
 
-
 # Other constants
 DIGITS = '0123456789'
 LETTERS = string.ascii_letters
 LETTERS_DIGITS = LETTERS + DIGITS
 KEYWORDS = [
     'define',
-    '&',
-    '|',
+    'and',
+    'or',
     'not',
+    'conif',
+    'do',
+    'conelif',
+    'conelse',
+    'for',
+    'until',
+    'step',
+    'while'
 ]
