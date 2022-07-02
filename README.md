@@ -1,1 +1,10 @@
-# Real, a programming language based on a tutorial
+# Real, a simple programming language
+
+
+# Intallation
+  ### Requirements
+  Python 3 (3.10 is the best version to use)  
+  git (install and download the language)
+
+  ### Proceeding
+  
