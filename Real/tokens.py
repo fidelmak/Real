@@ -2,15 +2,20 @@ import string
 # Token types
 TT_INT = 'INT'
 TT_FLOAT = 'FLOAT'
+TT_STRING = 'STRING'
 TT_PLUS = 'PLUS'
 TT_MINUS = 'MINUS'
 TT_MUL = 'MUL'
 TT_DIV = 'DIV'
 TT_LPAREN = 'LPAREN'
 TT_RPAREN = 'RPAREN'
+TT_LSQUARE = 'LSQUARE'
+TT_RSQUARE = 'RSQUARE'
 TT_EOF = 'EOF'
 TT_IDENTIFIER = 'IDENTIFIER'
 TT_KEYWORD = 'KEYWORD'
+TT_COMMA = 'COMMA'
+TT_ARROW = 'ARROW'
 TT_POW = 'POW'
 TT_EQ = 'EQ'
 TT_EE = 'EE'
@@ -36,5 +41,6 @@ KEYWORDS = [
     'for',
     'until',
     'step',
-    'while'
+    'while',
+    'void'
 ]
