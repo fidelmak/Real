@@ -708,11 +708,12 @@ class Parser:
 		res = ParseResult()
 		element_nodes = []
 		pos_start = self.current_tok.pos_start.copy()
+
 		if self.current_tok.type != TT_LSQUARE:
 			return res.failure(InvalidSyntaxError(
-        		self.current_tok.pos_start, self.current_tok.pos_end,
-        		f"Expected '['"
-      		))
+				self.current_tok.pos_start, self.current_tok.pos_end,
+				f"Expected '['"
+			))
 
 		res.register_advancement()
 		self.advance()
@@ -724,8 +725,8 @@ class Parser:
 			element_nodes.append(res.register(self.expr()))
 			if res.error:
 				return res.failure(InvalidSyntaxError(
-				self.current_tok.pos_start, self.current_tok.pos_end,
-				"Expected ']', 'define', 'if', 'for', 'while', 'void', int, float, identifier, '+', '-', '(', '[' or 'not'"
+					self.current_tok.pos_start, self.current_tok.pos_end,
+					"Expected ']', 'define', 'conif', 'for', 'while', 'void', int, float, identifier, '+', '-', '(', '[' or 'not'"
 				))
 
 			while self.current_tok.type == TT_COMMA:
@@ -734,7 +735,6 @@ class Parser:
 
 				element_nodes.append(res.register(self.expr()))
 				if res.error: return res
-
 
 			if self.current_tok.type != TT_RSQUARE:
 				return res.failure(InvalidSyntaxError(
